@@ -42,9 +42,8 @@ Main:
   ORR     R5, #(0b01<<(LD9_PIN*2))      @ write 01 to bits 
   STR     R5, [R4]                      @ Write  
 
-  LDR   R0, =patternArray @ output R0 = start address
-  LDR   R11, =patternArrayLen         @ output R1 = length (measured in bytes)
-  MOV   R12, #0
+  LDR   R10, =patternArray @ output R0 = start address
+  LDR   R12, =patternArrayLen         @ output R1 = length (measured in bytes)
 
 whileGameOngoing:
   CMP   R12, R11          @ R12 is the current length of the game
@@ -77,20 +76,22 @@ End_Main:
   POP   {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
-  PUSH [R4-R6, LR]
+  PUSH {R4-R8, LR}
+  MOV R7, R0
+  MOV R8, R1
   MOV R6, #0
   .LledLoop:
-    CMP R6, R1
+    CMP R6, R8
     BEQ .LdoneLed
-    LDR R5, [R0, R6 , LSL #2]
+    LDR R5, [R7, R6 , LSL #2]
     CMP R5, #1
-    BEQ .Lpin1:
+    BEQ .Lpin1
     CMP R5, #2
-    BEQ .Lpin2:
+    BEQ .Lpin2
     CMP R5, #3
-    BEQ .Lpin3:
+    BEQ .Lpin3
     CMP R5, #4
-    BEQ .Lpin4:
+    BEQ .Lpin4
   .LnextLoop:
     ADD R6, R6, #1
     B .LledLoop
@@ -143,7 +144,7 @@ setLED:
     STR R5, [R4] @ Write
     B .LnextLoop
   .LdoneLed:
-    POP [R4-R6, PC]
+    POP {R4-R8, PC}
 checkFullInput:
   @ inputs, R0 = start address of array, R1 = current length of sequence
   @ output, R0 = 1 if input correct and R0 = 0 if incorrect
@@ -191,7 +192,6 @@ delay_ms:
   
   POP   {R4-R5,PC}
 
---------------------
 
   @ Initialise the first countdown
 
@@ -264,7 +264,7 @@ delay_ms:
 Idle_Loop:
   B     Idle_Loop
   
-End_Main:
+End_Main1:
   POP   {R4-R5,PC}
 
 
@@ -339,7 +339,7 @@ button_count:
 blink_countdown:
   .space  4
 patternArray:
-.word 1, 2, 3, 4
+.word 1, 2, 3, 4, 3, 2, 1, 5
 .equ    patternArrayLen, (.-patternArray)/4
 
   .end
