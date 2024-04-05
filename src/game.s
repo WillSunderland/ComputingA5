@@ -21,9 +21,9 @@
 Main:
   PUSH  {R10-R12,LR}
 
-  BL    initLEDArray      @ Creates Array in memory start address R0 and length R1
-  MOV   R10, R0           @ output R0 = start address
-  MOV   R11, R1           @ output R1 = length (measured in bytes)
+  LDR   R0, =patternArray @ output R0 = start address
+  LDR   R11, =patternArrayLen         @ output R1 = length (measured in bytes)
+  MOV   R12, #0
 
 whileGameOngoing:
   CMP   R12, R11          @ R12 is the current length of the game
@@ -35,7 +35,7 @@ whileGameOngoing:
 
   MOV   R0, R10
   BL    checkFullInput    @ checks the entire user input, branching to timeToWait and others as needed
-  ADD   R12, #4
+  ADD   R12, #1
 
 
   CMP   R0, #0            @ checks full input ad displays win or loss
@@ -54,11 +54,35 @@ gameLost:
 
 End_Main:
   POP   {R10-R12,PC}
-
+@ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
-  @ inputs, R0 = start address of array, R1 = current length of sequence 
-  @ output, n/a
-
+  PUSH [LR]
+  MOV R4, #0
+  .LledLoop:
+    CMP R4, R1
+    BEQ .LdoneLed
+    LDR R5, [R0, R1 , LSL #2]
+    CMP R5, #1
+    BEQ .Lpin1:
+    CMP R5, #2
+    BEQ .Lpin2:
+    CMP R5, #3
+    BEQ .Lpin3:
+    CMP R5, #4
+    BEQ .Lpin4:
+  .LnextLoop:
+    ADD R1, R1, #1
+    B .LledLoop
+  .Lpin1:
+    B .LnextLoop
+  .Lpin2:
+    B .LnextLoop
+  .Lpin3:
+    B .LnextLoop
+  .Lpin4:
+    B .LnextLoop
+  .LdoneLed:
+    POP [PC]
 checkFullInput:
   @ inputs, R0 = start address of array, R1 = current length of sequence
   @ output, R0 = 1 if input correct and R0 = 0 if incorrect
@@ -235,5 +259,8 @@ button_count:
 
 blink_countdown:
   .space  4
+patternArray:
+.word 1, 2, 3, 4
+.equ    patternArrayLen, (.-patternArray)/4
 
   .end
