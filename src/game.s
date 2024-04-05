@@ -28,7 +28,19 @@ Main:
   LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD3_PIN*2))      @ Modify ...
   ORR     R5, #(0b01<<(LD3_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD5_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD5_PIN*2))      @ write 01 to bits 
   STR     R5, [R4]                      @ Write 
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD7_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD7_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write 
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD9_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD9_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write  
 
   LDR   R0, =patternArray @ output R0 = start address
   LDR   R11, =patternArrayLen         @ output R1 = length (measured in bytes)
@@ -65,12 +77,12 @@ End_Main:
   POP   {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
-  PUSH [LR]
-  MOV R4, #0
+  PUSH [R4-R6, LR]
+  MOV R6, #0
   .LledLoop:
-    CMP R4, R1
+    CMP R6, R1
     BEQ .LdoneLed
-    LDR R5, [R0, R1 , LSL #2]
+    LDR R5, [R0, R6 , LSL #2]
     CMP R5, #1
     BEQ .Lpin1:
     CMP R5, #2
@@ -80,18 +92,58 @@ setLED:
     CMP R5, #4
     BEQ .Lpin4:
   .LnextLoop:
-    ADD R1, R1, #1
+    ADD R6, R6, #1
     B .LledLoop
   .Lpin1:
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    ORR R5, #(0b1<<(LD3_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
+    LDR     R0, =BLINK_PERIOD
+    BL      delay_ms
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    AND R5, #(0b0<<(LD3_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
     B .LnextLoop
   .Lpin2:
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    ORR R5, #(0b1<<(LD5_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
+    LDR     R0, =BLINK_PERIOD
+    BL      delay_ms
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    AND R5, #(0b0<<(LD5_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
     B .LnextLoop
   .Lpin3:
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    ORR R5, #(0b1<<(LD7_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
+    LDR     R0, =BLINK_PERIOD
+    BL      delay_ms
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    AND R5, #(0b0<<(LD7_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
     B .LnextLoop
   .Lpin4:
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    ORR R5, #(0b1<<(LD9_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
+    LDR     R0, =BLINK_PERIOD
+    BL      delay_ms
+    LDR R4, =GPIOE_ODR
+    LDR R5, [R4] @ Read ...
+    AND R5, #(0b0<<(LD9_PIN)) @ Modify ...
+    STR R5, [R4] @ Write
     B .LnextLoop
   .LdoneLed:
-    POP [PC]
+    POP [R4-R6, PC]
 checkFullInput:
   @ inputs, R0 = start address of array, R1 = current length of sequence
   @ output, R0 = 1 if input correct and R0 = 0 if incorrect
@@ -99,29 +151,47 @@ checkFullInput:
 displayOutcome:
   @ input, R0 = type of output to show
   @ output, n/a
+delay_ms:
+  PUSH  {R4-R5,LR}
+
+  LDR   R4, =SYSTICK_CSR            @ Stop SysTick timer
+  LDR   R5, =0                      @   by writing 0 to CSR
+  STR   R5, [R4]                    @   CSR is the Control and Status Register
+  
+  LDR   R4, =SYSTICK_LOAD           @ Set SysTick LOAD for 1ms delay
+  LDR   R5, =7999                   @ Assuming a 8MHz clock
+  STR   R5, [R4]                    @ 
+  
+  LDR   R4, =SYSTICK_VAL            @ Reset SysTick internal counter to 0
+  LDR   R5, =0x1                    @   by writing any value
+  STR   R5, [R4]  
+
+  LDR   R4, =SYSTICK_CSR            @ Start SysTick timer by setting CSR to 0x5
+  LDR   R5, =0x5                    @   set CLKSOURCE (bit 2) to system clock (1)
+  STR   R5, [R4]                    @   set ENABLE (bit 0) to 1
+
+.LwhDelay:                          @ while (delay != 0) {
+  CMP   R0, #0  
+  BEQ   .LendwhDelay  
+  
+.Lwait:
+  LDR   R5, [R4]                    @   Repeatedly load the CSR and check bit 16
+  AND   R5, #0x10000                @   Loop until bit 16 is 1, indicating that
+  CMP   R5, #0                      @     the SysTick internal counter has counted
+  BEQ   .Lwait                      @     from 0x3E7F down to 0 and 1ms has elapsed 
+
+  SUB   R0, R0, #1                  @   delay = delay - 1
+  B     .LwhDelay                   @ }
+
+.LendwhDelay:
+
+  LDR   R4, =SYSTICK_CSR            @ Stop SysTick timer
+  LDR   R5, =0                      @   by writing 0 to CSR
+  STR   R5, [R4]                    @   CSR is the Control and Status Register
+  
+  POP   {R4-R5,PC}
 
 --------------------
-
-
-  @
-  @ Prepare GPIO Port E Pin 9 for output (LED LD3)
-  @ We'll blink LED LD3 (the orange LED)
-  @
-
-  @ Enable GPIO port E by enabling its clock
-  LDR     R4, =RCC_AHBENR
-  LDR     R5, [R4]
-  ORR     R5, R5, #(0b1 << (RCC_AHBENR_GPIOEEN_BIT))
-  STR     R5, [R4]
-
-  @ Configure LD3 for output
-  @   by setting bits 27:26 of GPIOE_MODER to 01 (GPIO Port E Mode Register)
-  @   (by BIClearing then ORRing)
-  LDR     R4, =GPIOE_MODER
-  LDR     R5, [R4]                    @ Read ...
-  BIC     R5, #(0b11<<(LD3_PIN*2))    @ Modify ...
-  ORR     R5, #(0b01<<(LD3_PIN*2))    @ write 01 to bits 
-  STR     R5, [R4]                    @ Write 
 
   @ Initialise the first countdown
 
