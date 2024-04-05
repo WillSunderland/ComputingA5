@@ -20,6 +20,15 @@
 
 Main:
   PUSH  {R10-R12,LR}
+  LDR     R4, =RCC_AHBENR
+  LDR     R5, [R4]
+  ORR     R5, R5, #(0b1 << (RCC_AHBENR_GPIOEEN_BIT))
+  STR     R5, [R4]
+  LDR     R4, =GPIOE_MODER
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD3_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD3_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write 
 
   LDR   R0, =patternArray @ output R0 = start address
   LDR   R11, =patternArrayLen         @ output R1 = length (measured in bytes)
