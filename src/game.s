@@ -30,16 +30,32 @@ Main:
   ORR     R5, #(0b01<<(LD3_PIN*2))      @ write 01 to bits 
   STR     R5, [R4]                      @ Write
   LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD4_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD4_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write
+  LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD5_PIN*2))      @ Modify ...
   ORR     R5, #(0b01<<(LD5_PIN*2))      @ write 01 to bits 
   STR     R5, [R4]                      @ Write 
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD6_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD6_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write
   LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD7_PIN*2))      @ Modify ...
   ORR     R5, #(0b01<<(LD7_PIN*2))      @ write 01 to bits 
   STR     R5, [R4]                      @ Write 
   LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD8_PIN*2))      @ Modify ...
+  ORR     R5, #(0b01<<(LD8_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write 
+  LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD9_PIN*2))      @ Modify ...
   ORR     R5, #(0b01<<(LD9_PIN*2))      @ write 01 to bits 
+  STR     R5, [R4]                      @ Write 
+  LDR     R5, [R4]                      @ Read ...
+  BIC     R5, #(0b11<<(LD10_PIN*2))     @ Modify ...
+  ORR     R5, #(0b01<<(LD10_PIN*2))     @ write 01 to bits 
   STR     R5, [R4]                      @ Write  
 
   LDR   R10, =patternArray @ output R0 = start address
@@ -150,8 +166,54 @@ checkFullInput:
   @ output, R0 = 1 if input correct and R0 = 0 if incorrect
 
 displayOutcome:
-  @ input, R0 = type of output to show
-  @ output, n/a
+  PUSH  {R4-R7, LR} 
+  CMP   R0, #0                    @this outcome should be in an x shape
+  BNE   .LgameNotLost
+  LDR   R4, =GPIOE_ODR
+  LDR   R5, [R4] @ Read ...
+  ORR   R5, #0b101010100000000
+  STR   R5, [R4] @ Write
+  LDR   R0, =BLINK_PERIOD
+  BL    delay_ms
+  LDR   R5, [R4] @ Read ...
+  AND   R5, #0b010101011111111
+  STR   R5, [R4] @ Write
+  B     .LdoneOutcome
+
+.LgameNotLost:
+  CMP   R0, #1                    @this outcome should make all lights light up
+  BNE   .LfullGameWon             @for when single round is guessed
+  LDR   R4, =GPIOE_ODR
+  LDR   R5, [R4] @ Read ...
+  ORR   R5, #0b111111110000000
+  STR   R5, [R4] @ Write
+  LDR   R0, =BLINK_PERIOD
+  BL    delay_ms
+  LDR   R5, [R4] @ Read ...
+  AND   R5, #0b000000001111111
+  STR   R5, [R4] @ Write
+  B     .LdoneOutcome
+
+.LfullGameWon:
+  MOV   R6, #(0b1<<(LD4_PIN))     @this outcome should make all lights light up one by one
+.LwhFullGameWon:
+  CMP   R7, #7                   
+  BEQ   .LeWhFullGameWon
+  LDR   R5, [R4]
+  ORR   R5, R6
+  LSL   R6, #1
+  STR   R5, [R4]
+  LDR   R0, =BLINK_PERIOD
+  BL    delay_ms
+  ADD   R7, #1
+  B     .LwhFullGameWon   
+.LeWhFullGameWon:
+  LDR   R5, [R4] @ Read ...
+  AND   R5, #0b000000001111111
+  STR   R5, [R4] @ Write  
+.LdoneOutcome:
+  POP   {R4-R7, PC}
+
 delay_ms:
   PUSH  {R4-R5,LR}
 
