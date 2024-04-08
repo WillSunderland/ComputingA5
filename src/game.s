@@ -63,7 +63,7 @@ Main:
   @   must not rely on registers to maintain values across
   @   different invocations of the handler (i.e. across
   @   different presses of the pushbutton)
-  LDR   R4, =count        @ count = 0;
+  LDR   R4, =button_count        @ count = 0;
   MOV   R5, #0            @
   STR   R5, [R4]          @
 
@@ -103,6 +103,7 @@ Main:
   LDR     R4, =NVIC_ISER
   MOV     R5, #(1<<6)
   STR     R5, [R4]
+
 
   LDR   R10, =patternArray @ output R0 = start address
   LDR   R12, =patternArrayLen         @ output R1 = length (measured in bytes)
@@ -208,6 +209,35 @@ setLED:
   .LdoneLed:
     POP {R4-R8, PC}
 
+.LIdle_Loop:
+  LDR   R4, =button_count        @ count = count + 1
+  LDR   R5, [R4]          @
+  B     .LIdle_Loop
+
+checkFullInput:
+  @ inputs, R0 = start address of array, R1 = current length of sequence
+  @ output, R0 = 1 if input correct and R0 = 0 if incorrect
+/* 
+  PUSH  {R4-R6, LR}
+
+  MOV   R4, R0
+  MOV   R5, R1
+  MOV   R6, R0
+.LFor1:
+  CMP   R6, R5
+  BEQ   .LendFor1
+
+.LendFor1:
+*/
+
+  .syntax unified
+  .cpu cortex-m4
+  .fpu softvfp
+  .thumb
+  
+  .global pollButtonPresses
+  .extern button_count
+
 pollButtonPresses:
   PUSH  {R4-R7,LR}
 
@@ -227,24 +257,24 @@ pollButtonPresses:
   MOV   R6, R0                      @ Move initial timeout to R6
   MOV   R7, #0                      @ Button press counter
 
-pollLoop:
+.LpollLoop:
   CMP   R6, #0                      @ Check if timeout has expired
-  BEQ   timeout                     @ If so, exit loop
+  BEQ   .Ltimeout                     @ If so, exit loop
 
   LDR   R0, =button_count           @ Check button_count
   LDR   R0, [R0]
   CMP   R0, R7                      @ Compare current button count with stored count
-  BEQ   continuePolling             @ If equal, no new press; continue polling
+  BEQ   .LcontinuePolling             @ If equal, no new press; continue polling
 
   @ New button press detected
   MOV   R7, R0                      @ Update stored count with new value
   MOV   R6, #500                    @ Reset timeout for subsequent presses to 0.5 seconds
 
-continuePolling:
+.LcontinuePolling:
   SUBS  R6, R6, #1                  @ Decrement timeout
-  B     pollLoop
+  B     .LpollLoop
 
-timeout:
+.Ltimeout:
   CMP   R7, #0                      @ Check if any button was pressed
   BNE   .Lpressed
   MOV    R0, #0                      @ Return 0 if no press was detected
@@ -307,7 +337,7 @@ checkSequence:
 
 
 displayOutcome:
-  PUSH  {R4-R7, LR} 
+  PUSH  {R4-R8, LR} 
   CMP   R0, #0                    @this outcome should be in an x shape
   BNE   .LgameNotLost
   LDR   R4, =GPIOE_ODR
@@ -317,7 +347,8 @@ displayOutcome:
   LDR   R0, =BLINK_PERIOD
   BL    delay_ms
   LDR   R5, [R4] @ Read ...
-  AND   R5, #0b010101011111111
+  MOV   R8, #0b010101011111111
+  AND   R5, R8
   STR   R5, [R4] @ Write
   B     .LdoneOutcome
 
@@ -353,7 +384,7 @@ displayOutcome:
   AND   R5, #0b000000001111111
   STR   R5, [R4] @ Write  
 .LdoneOutcome:
-  POP   {R4-R7, PC}
+  POP   {R4-R8, PC}
 
 delay_ms:
   PUSH  {R4-R5,LR}
@@ -464,9 +495,7 @@ delay_ms:
 
   @ Nothing else to do in Main
   @ Idle loop forever (welcome to interrupts!!)
-Idle_Loop:
-  B     Idle_Loop
-  
+
 End_Main1:
   POP   {R4-R5,PC}
 
