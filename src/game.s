@@ -14,7 +14,8 @@
   @ Definitions are in definitions.s to keep this file "clean"
   .include "./src/definitions.s"
 
-  .equ    BLINK_PERIOD, 250
+  .equ    BLINK_PERIOD, 1000
+  .equ    WAIT_PERIOD, 5000
 
   .section .text
 
@@ -25,6 +26,7 @@ Main:
   ORR     R5, R5, #(0b1 << (RCC_AHBENR_GPIOEEN_BIT))
   STR     R5, [R4]
   LDR     R4, =GPIOE_MODER
+  /* 
   LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD3_PIN*2))      @ Modify ...
   ORR     R5, #(0b01<<(LD3_PIN*2))      @ write 01 to bits 
@@ -56,6 +58,8 @@ Main:
   LDR     R5, [R4]                      @ Read ...
   BIC     R5, #(0b11<<(LD10_PIN*2))     @ Modify ...
   ORR     R5, #(0b01<<(LD10_PIN*2))     @ write 01 to bits 
+  */
+  LDR     R5, =0x55550000
   STR     R5, [R4]                      @ Write  
 
   @ Initial count of button presses to 0
@@ -107,35 +111,32 @@ Main:
 
   LDR   R10, =patternArray @ output R0 = start address
   LDR   R12, =patternArrayLen         @ output R1 = length (measured in bytes)
-
-whileGameOngoing:
-  CMP   R12, R11          @ R12 is the current length of the game
-  BEQ   gameWon           @ if the length of LED array is finished, game is won
-  
+  MOV   R11, #1
+.LFor2:  
+  CMP   R11, R12 
+  BHI   .LendFor2
   MOV   R0, R10
-  MOV   R1, R12
+  MOV   R1, R11
   BL    setLED            @ sets the LED based on the array
-
+  LDR   R3, =button_count
+  MOV   R4, #0
+  STR   R4, [R3]
+  LDR   R0, =WAIT_PERIOD
+  BL    delay_ms
   MOV   R0, R10
-  BL    checkSequence    @ checks the entire user input, branching to timeToWait and others as needed
-  ADD   R12, #1
-
-
-  CMP   R0, #0            @ checks full input ad displays win or loss
-  BNE   roundWon
+  MOV   R1, R11 
+  LDR   R3, =button_count
+  LDR   R2, [R3]
+  BL    checkIfSum
+  CMP   R0, #1
+  BNE   End_Main
   BL    displayOutcome
-  B     gameLost
-roundWon:
-  BL    displayOutcome
-  B     whileGameOngoing  
+  ADD   R11, R11, #1
+  B     .LFor2
+.LendFor2:
   
-gameWon:
-  MOV   R0, #2
-  BL    displayOutcome    @ branches to slightly different win sequence
-  
-gameLost:
-
 End_Main:
+  BL    displayOutcome
   POP   {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
@@ -209,26 +210,7 @@ setLED:
   .LdoneLed:
     POP {R4-R8, PC}
 
-.LIdle_Loop:
-  LDR   R4, =button_count        @ count = count + 1
-  LDR   R5, [R4]          @
-  B     .LIdle_Loop
 
-checkFullInput:
-  @ inputs, R0 = start address of array, R1 = current length of sequence
-  @ output, R0 = 1 if input correct and R0 = 0 if incorrect
-/* 
-  PUSH  {R4-R6, LR}
-
-  MOV   R4, R0
-  MOV   R5, R1
-  MOV   R6, R0
-.LFor1:
-  CMP   R6, R5
-  BEQ   .LendFor1
-
-.LendFor1:
-*/
 
   .syntax unified
   .cpu cortex-m4
@@ -238,102 +220,33 @@ checkFullInput:
   .global pollButtonPresses
   .extern button_count
 
-pollButtonPresses:
-  PUSH  {R4-R7,LR}
-
-  LDR   R4, =SYSTICK_CSR            @ Setup SysTick for 1ms tick
-  MOV   R5, #0
-  STR   R5, [R4]                    @ Stop SysTick timer
-  LDR   R4, =SYSTICK_LOAD
-  LDR   R5, =7999                   @ 1ms tick with 8MHz clock
-  STR   R5, [R4]
-  LDR   R4, =SYSTICK_VAL
-  MOV   R5, #0
-  STR   R5, [R4]                    @ Reset counter
-  LDR   R4, =SYSTICK_CSR
-  MOV   R5, #5                      @ Enable timer, use processor clock
-  STR   R5, [R4]
-
-  MOV   R6, R0                      @ Move initial timeout to R6
-  MOV   R7, #0                      @ Button press counter
-
-.LpollLoop:
-  CMP   R6, #0                      @ Check if timeout has expired
-  BEQ   .Ltimeout                     @ If so, exit loop
-
-  LDR   R0, =button_count           @ Check button_count
-  LDR   R0, [R0]
-  CMP   R0, R7                      @ Compare current button count with stored count
-  BEQ   .LcontinuePolling             @ If equal, no new press; continue polling
-
-  @ New button press detected
-  MOV   R7, R0                      @ Update stored count with new value
-  MOV   R6, #500                    @ Reset timeout for subsequent presses to 0.5 seconds
-
-.LcontinuePolling:
-  SUBS  R6, R6, #1                  @ Decrement timeout
-  B     .LpollLoop
-
-.Ltimeout:
-  CMP   R7, #0                      @ Check if any button was pressed
-  BNE   .Lpressed
-  MOV    R0, #0                      @ Return 0 if no press was detected
-  B      .Lexit
-.Lpressed:
-  MOV    R0, #1                      @ Return 1 if at least one press was detected
-.Lexit:
-  @ Cleanup and exit
-  LDR   R4, =SYSTICK_CSR
-  MOV   R5, #0
-  STR   R5, [R4]                    @ Stop SysTick timer
-
-  POP   {R4-R7,PC}
-
-
-
-
-checkSequence:
-  @ Input: R0 = start address of sequence array, R1 = current length of sequence
-  @ Output: R0 = 1 if input is correct, R0 = 0 if incorrect
-  PUSH  {R4-R8, LR}
-
-  MOV   R4, R0  @ Copy start address of array to R4
-  MOV   R5, R1  @ Copy length of sequence to R5
-  MOV   R6, #0  @ Initialize loop index
-
-.LcheckLoop:
-  CMP   R6, R5          @ Compare current index with length of sequence
-  BEQ   .Lsuccess        @ If equal, all inputs were correct
-  MOV   R8, #1
-.LwhileChecking:
-  CMP   R8, #1
-  BNE   .LendCheck
-  MOV   R0, #2000
-  BL    pollButtonPresses
-  MOV   R8, R0
-  B     .LwhileChecking
-.LendCheck:
-  LDR   R7, [R4, R6, LSL #2] @ Load expected press count for current LED
-  LDR   R0, =button_count    @ Load address of button_count
-  LDR   R0, [R0]             @ Load current button press count
-
-  CMP   R0, R7          @ Compare expected count with actual count
-  BNE   .Lfailure        @ If not equal, input was incorrect
-
-  @ Reset button count for next LED
+@ checkIfSum subroutine
+@ inputs: R0 start address of array, R1 length of array, R2 number of button presses
+@ return value: R0 1 if correct 0 if wrong
+checkIfSum:
+  PUSH  {R4-R9, LR}
+  MOV   R4, R0
+  MOV   R5, R1
+  MOV   R6, R2
+  MOV   R7, #0
+  MOV   R8, #0
+.LFor1:
+  CMP   R7, R5
+  BHS   .LendFor1
+  LDR   R9, [R4, R7, LSL #2]
+  ADD   R8, R8, R9 
+  ADD   R7, R7, #1
+  B     .LFor1
+.LendFor1:
+  CMP   R8, R6 
+  BEQ   .LCorrect
   MOV   R0, #0
-  STR   R0, [R4, R6, LSL #2]
+  B     .LFinishCheckIfSum
+.LCorrect:
+  MOV   R0, #1
+.LFinishCheckIfSum:
+  POP   {R4-R9, PC}
 
-  ADD   R6, R6, #1      @ Move to next LED in sequence
-  B     .LcheckLoop
-
-.Lsuccess:
-  MOV   R0, #1          @ Set return value to indicate success
-  POP   {R4-R7, PC}
-
-.Lfailure:
-  MOV   R0, #0          @ Set return value to indicate failure
-  POP   {R4-R7, PC}
 
 
 displayOutcome:
@@ -351,10 +264,8 @@ displayOutcome:
   AND   R5, R8
   STR   R5, [R4] @ Write
   B     .LdoneOutcome
-
+  
 .LgameNotLost:
-  CMP   R0, #1                    @this outcome should make all lights light up
-  BNE   .LfullGameWon             @for when single round is guessed
   LDR   R4, =GPIOE_ODR
   LDR   R5, [R4] @ Read ...
   ORR   R5, #0b111111110000000
@@ -364,25 +275,8 @@ displayOutcome:
   LDR   R5, [R4] @ Read ...
   AND   R5, #0b000000001111111
   STR   R5, [R4] @ Write
-  B     .LdoneOutcome
 
-.LfullGameWon:
-  MOV   R6, #(0b1<<(LD4_PIN))     @this outcome should make all lights light up one by one
-.LwhFullGameWon:
-  CMP   R7, #7                   
-  BEQ   .LeWhFullGameWon
-  LDR   R5, [R4]
-  ORR   R5, R6
-  LSL   R6, #1
-  STR   R5, [R4]
-  LDR   R0, =BLINK_PERIOD
-  BL    delay_ms
-  ADD   R7, #1
-  B     .LwhFullGameWon   
-.LeWhFullGameWon:
-  LDR   R5, [R4] @ Read ...
-  AND   R5, #0b000000001111111
-  STR   R5, [R4] @ Write  
+
 .LdoneOutcome:
   POP   {R4-R8, PC}
 
@@ -571,7 +465,7 @@ button_count:
 blink_countdown:
   .space  4
 patternArray:
-.word 1, 2, 3, 4, 3, 2, 1, 5
+.word 4, 2, 1, 3
 .equ    patternArrayLen, (.-patternArray)/4
 
   .end
