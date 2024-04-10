@@ -103,6 +103,10 @@ Main:
 .LendFor2:
   
 End_Main:
+  CMP     R0, #1
+  BNE     notWon
+  MOV     R0, #2
+notWon:
   BL      displayOutcome
   POP     {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
