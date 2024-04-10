@@ -20,45 +20,12 @@
   .section .text
 
 Main:
-  PUSH  {R10-R12,LR}
+  PUSH    {R10-R12,LR}
   LDR     R4, =RCC_AHBENR
   LDR     R5, [R4]
   ORR     R5, R5, #(0b1 << (RCC_AHBENR_GPIOEEN_BIT))
   STR     R5, [R4]
   LDR     R4, =GPIOE_MODER
-  /* 
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD3_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD3_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD4_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD4_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD5_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD5_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write 
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD6_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD6_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD7_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD7_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write 
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD8_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD8_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write 
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD9_PIN*2))      @ Modify ...
-  ORR     R5, #(0b01<<(LD9_PIN*2))      @ write 01 to bits 
-  STR     R5, [R4]                      @ Write 
-  LDR     R5, [R4]                      @ Read ...
-  BIC     R5, #(0b11<<(LD10_PIN*2))     @ Modify ...
-  ORR     R5, #(0b01<<(LD10_PIN*2))     @ write 01 to bits 
-  */
   LDR     R5, =0x55550000
   STR     R5, [R4]                      @ Write  
 
@@ -67,9 +34,9 @@ Main:
   @   must not rely on registers to maintain values across
   @   different invocations of the handler (i.e. across
   @   different presses of the pushbutton)
-  LDR   R4, =button_count        @ count = 0;
-  MOV   R5, #0            @
-  STR   R5, [R4]          @
+  LDR     R4, =button_count        @ count = 0;
+  MOV     R5, #0            @
+  STR     R5, [R4]          @
 
   @ Configure USER pushbutton (GPIO Port A Pin 0 on STM32F3 Discovery
   @   kit) to use the EXTI0 external interrupt signal
@@ -109,106 +76,106 @@ Main:
   STR     R5, [R4]
 
 
-  LDR   R10, =patternArray @ output R0 = start address
-  LDR   R12, =patternArrayLen         @ output R1 = length (measured in bytes)
-  MOV   R11, #1
+  LDR     R10, =patternArray @ output R0 = start address
+  LDR     R12, =patternArrayLen         @ output R1 = length (measured in bytes)
+  MOV     R11, #1
 .LFor2:  
-  CMP   R11, R12 
-  BHI   .LendFor2
-  MOV   R0, R10
-  MOV   R1, R11
-  BL    setLED            @ sets the LED based on the array
-  LDR   R3, =button_count
-  MOV   R4, #0
-  STR   R4, [R3]
-  LDR   R0, =WAIT_PERIOD
-  BL    delay_ms
-  MOV   R0, R10
-  MOV   R1, R11 
-  LDR   R3, =button_count
-  LDR   R2, [R3]
-  BL    checkIfSum
-  CMP   R0, #1
-  BNE   End_Main
-  BL    displayOutcome
-  ADD   R11, R11, #1
-  B     .LFor2
+  CMP     R11, R12 
+  BHI     .LendFor2
+  MOV     R0, R10
+  MOV     R1, R11
+  BL      setLED            @ sets the LED based on the array
+  LDR     R3, =button_count
+  MOV     R4, #0
+  STR     R4, [R3]
+  LDR     R0, =WAIT_PERIOD
+  BL      delay_ms
+  MOV     R0, R10
+  MOV     R1, R11 
+  LDR     R3, =button_count
+  LDR     R2, [R3]
+  BL      checkIfSum
+  CMP     R0, #1
+  BNE     End_Main
+  BL      displayOutcome
+  ADD     R11, R11, #1
+  B       .LFor2
 .LendFor2:
   
 End_Main:
-  BL    displayOutcome
-  POP   {R10-R12,PC}
+  BL      displayOutcome
+  POP     {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
-  PUSH {R4-R8, LR}
-  MOV R7, R0
-  MOV R8, R1
-  MOV R6, #0
-  .LledLoop:
-    CMP R6, R8
-    BEQ .LdoneLed
-    LDR R5, [R7, R6 , LSL #2]
-    CMP R5, #1
-    BEQ .Lpin1
-    CMP R5, #2
-    BEQ .Lpin2
-    CMP R5, #3
-    BEQ .Lpin3
-    CMP R5, #4
-    BEQ .Lpin4
-  .LnextLoop:
-    ADD R6, R6, #1
-    B .LledLoop
-  .Lpin1:
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    ORR R5, #(0b1<<(LD3_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    LDR     R0, =BLINK_PERIOD
-    BL      delay_ms
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    AND R5, #(0b0<<(LD3_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    B .LnextLoop
-  .Lpin2:
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    ORR R5, #(0b1<<(LD5_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    LDR     R0, =BLINK_PERIOD
-    BL      delay_ms
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    AND R5, #(0b0<<(LD5_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    B .LnextLoop
-  .Lpin3:
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    ORR R5, #(0b1<<(LD7_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    LDR     R0, =BLINK_PERIOD
-    BL      delay_ms
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    AND R5, #(0b0<<(LD7_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    B .LnextLoop
-  .Lpin4:
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    ORR R5, #(0b1<<(LD9_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    LDR     R0, =BLINK_PERIOD
-    BL      delay_ms
-    LDR R4, =GPIOE_ODR
-    LDR R5, [R4] @ Read ...
-    AND R5, #(0b0<<(LD9_PIN)) @ Modify ...
-    STR R5, [R4] @ Write
-    B .LnextLoop
-  .LdoneLed:
-    POP {R4-R8, PC}
+  PUSH    {R4-R8, LR}
+  MOV     R7, R0
+  MOV     R8, R1
+  MOV     R6, #0
+.LledLoop:
+  CMP     R6, R8
+  BEQ     .LdoneLed
+  LDR     R5, [R7, R6 , LSL #2]
+  CMP     R5, #1
+  BEQ     .Lpin1
+  CMP     R5, #2
+  BEQ     .Lpin2
+  CMP     R5, #3
+  BEQ     .Lpin3
+  CMP     R5, #4
+  BEQ     .Lpin4
+.LnextLoop:
+  ADD     R6, R6, #1
+  B       .LledLoop
+.Lpin1:
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #(0b1<<(LD3_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #(0b0<<(LD3_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  B       .LnextLoop
+.Lpin2:
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #(0b1<<(LD5_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #(0b0<<(LD5_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  B       .LnextLoop
+.Lpin3:
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #(0b1<<(LD7_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #(0b0<<(LD7_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  B       .LnextLoop
+.Lpin4:
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #(0b1<<(LD9_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #(0b0<<(LD9_PIN)) @ Modify ...
+  STR     R5, [R4] @ Write
+  B       .LnextLoop
+.LdoneLed:
+  POP     {R4-R8, PC}
 
 
 
@@ -224,101 +191,121 @@ setLED:
 @ inputs: R0 start address of array, R1 length of array, R2 number of button presses
 @ return value: R0 1 if correct 0 if wrong
 checkIfSum:
-  PUSH  {R4-R9, LR}
-  MOV   R4, R0
-  MOV   R5, R1
-  MOV   R6, R2
-  MOV   R7, #0
-  MOV   R8, #0
+  PUSH    {R4-R9, LR}
+  MOV     R4, R0
+  MOV     R5, R1
+  MOV     R6, R2
+  MOV     R7, #0
+  MOV     R8, #0
 .LFor1:
-  CMP   R7, R5
-  BHS   .LendFor1
-  LDR   R9, [R4, R7, LSL #2]
-  ADD   R8, R8, R9 
-  ADD   R7, R7, #1
-  B     .LFor1
+  CMP     R7, R5
+  BHS     .LendFor1
+  LDR     R9, [R4, R7, LSL #2]
+  ADD     R8, R8, R9 
+  ADD     R7, R7, #1
+  B       .LFor1
 .LendFor1:
-  CMP   R8, R6 
-  BEQ   .LCorrect
-  MOV   R0, #0
-  B     .LFinishCheckIfSum
+  CMP     R8, R6 
+  BEQ     .LCorrect
+  MOV     R0, #0
+  B       .LFinishCheckIfSum
 .LCorrect:
-  MOV   R0, #1
+  MOV     R0, #1
 .LFinishCheckIfSum:
-  POP   {R4-R9, PC}
+  POP     {R4-R9, PC}
 
 
 
 displayOutcome:
-  PUSH  {R4-R8, LR} 
-  CMP   R0, #0                    @this outcome should be in an x shape
-  BNE   .LgameNotLost
-  LDR   R4, =GPIOE_ODR
-  LDR   R5, [R4] @ Read ...
-  ORR   R5, #0b101010100000000
-  STR   R5, [R4] @ Write
-  LDR   R0, =BLINK_PERIOD
-  BL    delay_ms
-  LDR   R5, [R4] @ Read ...
-  MOV   R8, #0b010101011111111
-  AND   R5, R8
-  STR   R5, [R4] @ Write
-  B     .LdoneOutcome
-  
+  PUSH    {R4-R8, LR} 
+  CMP     R0, #0                    @this outcome should be in an x shape
+  BNE     .LgameNotLost
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #0b101010100000000
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R5, [R4] @ Read ...
+  MOV     R8, #0b010101011111111
+  AND     R5, R8
+  STR     R5, [R4] @ Write
+  B       .LdoneOutcome
+
 .LgameNotLost:
-  LDR   R4, =GPIOE_ODR
-  LDR   R5, [R4] @ Read ...
-  ORR   R5, #0b111111110000000
-  STR   R5, [R4] @ Write
-  LDR   R0, =BLINK_PERIOD
-  BL    delay_ms
-  LDR   R5, [R4] @ Read ...
-  AND   R5, #0b000000001111111
-  STR   R5, [R4] @ Write
+  CMP     R0, #1                    @this outcome should make all lights light up
+  BNE     .LfullGameWon             @for when single round is guessed
+  LDR     R4, =GPIOE_ODR
+  LDR     R5, [R4] @ Read ...
+  ORR     R5, #0b111111110000000
+  STR     R5, [R4] @ Write
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #0b000000001111111
+  STR     R5, [R4] @ Write
+  B       .LdoneOutcome
 
-
+.LfullGameWon:
+  MOV     R6, #(0b1<<(LD4_PIN))     @this outcome should make all lights light up one by one
+  MOV     R7, #0
+.LwhFullGameWon:
+  CMP     R7, #7                   
+  BEQ     .LeWhFullGameWon
+  LDR     R5, [R4]
+  ORR     R5, R6
+  LSL     R6, #1
+  STR     R5, [R4]
+  LDR     R0, =BLINK_PERIOD
+  BL      delay_ms
+  ADD     R7, #1
+  B       .LwhFullGameWon   
+.LeWhFullGameWon:
+  LDR     R5, [R4] @ Read ...
+  AND     R5, #0b000000001111111
+  STR     R5, [R4] @ Write  
 .LdoneOutcome:
-  POP   {R4-R8, PC}
+  POP     {R4-R8, PC}
 
 delay_ms:
-  PUSH  {R4-R5,LR}
-
-  LDR   R4, =SYSTICK_CSR            @ Stop SysTick timer
-  LDR   R5, =0                      @   by writing 0 to CSR
-  STR   R5, [R4]                    @   CSR is the Control and Status Register
+  PUSH    {R4-R5,LR}
   
-  LDR   R4, =SYSTICK_LOAD           @ Set SysTick LOAD for 1ms delay
-  LDR   R5, =7999                   @ Assuming a 8MHz clock
-  STR   R5, [R4]                    @ 
+  LDR     R4, =SYSTICK_CSR            @ Stop SysTick timer
+  LDR     R5, =0                      @   by writing 0 to CSR
+  STR     R5, [R4]                    @   CSR is the Control and Status Register
+    
+  LDR     R4, =SYSTICK_LOAD           @ Set SysTick LOAD for 1ms delay
+  LDR     R5, =7999                   @ Assuming a 8MHz clock
+  STR     R5, [R4]                    @ 
+    
+  LDR     R4, =SYSTICK_VAL            @ Reset SysTick internal counter to 0
+  LDR     R5, =0x1                    @   by writing any value
+  STR     R5, [R4]  
   
-  LDR   R4, =SYSTICK_VAL            @ Reset SysTick internal counter to 0
-  LDR   R5, =0x1                    @   by writing any value
-  STR   R5, [R4]  
-
-  LDR   R4, =SYSTICK_CSR            @ Start SysTick timer by setting CSR to 0x5
-  LDR   R5, =0x5                    @   set CLKSOURCE (bit 2) to system clock (1)
-  STR   R5, [R4]                    @   set ENABLE (bit 0) to 1
+  LDR     R4, =SYSTICK_CSR            @ Start SysTick timer by setting CSR to 0x5
+  LDR     R5, =0x5                    @   set CLKSOURCE (bit 2) to system clock (1)
+  STR     R5, [R4]                    @   set ENABLE (bit 0) to 1
 
 .LwhDelay:                          @ while (delay != 0) {
-  CMP   R0, #0  
-  BEQ   .LendwhDelay  
+  CMP     R0, #0  
+  BEQ     .LendwhDelay  
+    
+.Lwait:  
+  LDR     R5, [R4]                    @   Repeatedly load the CSR and check bit 16
+  AND     R5, #0x10000                @   Loop until bit 16 is 1, indicating that
+  CMP     R5, #0                      @     the SysTick internal counter has counted
+  BEQ     .Lwait                      @     from 0x3E7F down to 0 and 1ms has elapsed 
   
-.Lwait:
-  LDR   R5, [R4]                    @   Repeatedly load the CSR and check bit 16
-  AND   R5, #0x10000                @   Loop until bit 16 is 1, indicating that
-  CMP   R5, #0                      @     the SysTick internal counter has counted
-  BEQ   .Lwait                      @     from 0x3E7F down to 0 and 1ms has elapsed 
-
-  SUB   R0, R0, #1                  @   delay = delay - 1
-  B     .LwhDelay                   @ }
+  SUB     R0, R0, #1                  @   delay = delay - 1
+  B       .LwhDelay                   @ }
 
 .LendwhDelay:
 
-  LDR   R4, =SYSTICK_CSR            @ Stop SysTick timer
-  LDR   R5, =0                      @   by writing 0 to CSR
-  STR   R5, [R4]                    @   CSR is the Control and Status Register
+  LDR     R4, =SYSTICK_CSR            @ Stop SysTick timer
+  LDR     R5, =0                      @   by writing 0 to CSR
+  STR     R5, [R4]                    @   CSR is the Control and Status Register
   
-  POP   {R4-R5,PC}
+  POP     {R4-R5,PC}
 
 
   @ Initialise the first countdown
@@ -357,9 +344,9 @@ delay_ms:
   @
 
   @ Initialise count to zero
-  LDR   R4, =button_count             @ count = 0;
-  MOV   R5, #0                        @
-  STR   R5, [R4]                      @
+  LDR     R4, =button_count             @ count = 0;
+  MOV     R5, #0                        @
+  STR     R5, [R4]                      @
 
   @ Configure USER pushbutton (GPIO Port A Pin 0 on STM32F3 Discovery
   @   kit) to use the EXTI0 external interrupt signal
@@ -391,7 +378,7 @@ delay_ms:
   @ Idle loop forever (welcome to interrupts!!)
 
 End_Main1:
-  POP   {R4-R5,PC}
+  POP     {R4-R5,PC}
 
 
 
@@ -401,17 +388,17 @@ End_Main1:
   .type  SysTick_Handler, %function
 SysTick_Handler:
 
-  PUSH  {R4, R5, LR}
-
-  LDR   R4, =blink_countdown        @ if (countdown != 0) {
-  LDR   R5, [R4]                    @
-  CMP   R5, #0                      @
-  BEQ   .LelseFire                  @
-
-  SUB   R5, R5, #1                  @   countdown = countdown - 1;
-  STR   R5, [R4]                    @
-
-  B     .LendIfDelay                @ }
+  PUSH    {R4, R5, LR}
+  
+  LDR     R4, =blink_countdown        @ if (countdown != 0) {
+  LDR     R5, [R4]                    @
+  CMP     R5, #0                      @
+  BEQ     .LelseFire                  @
+  
+  SUB     R5, R5, #1                  @   countdown = countdown - 1;
+  STR     R5, [R4]                    @
+  
+  B       .LendIfDelay                @ }
 
 .LelseFire:                         @ else {
 
@@ -442,19 +429,19 @@ SysTick_Handler:
   .type  EXTI0_IRQHandler, %function
 EXTI0_IRQHandler:
 
-  PUSH  {R4,R5,LR}
-
-  LDR   R4, =button_count           @ count = count + 1
-  LDR   R5, [R4]                    @
-  ADD   R5, R5, #1                  @
-  STR   R5, [R4]                    @
-
-  LDR   R4, =EXTI_PR                @ Clear (acknowledge) the interrupt
-  MOV   R5, #(1<<0)                 @
-  STR   R5, [R4]                    @
+  PUSH    {R4,R5,LR}
+  
+  LDR     R4, =button_count           @ count = count + 1
+  LDR     R5, [R4]                    @
+  ADD     R5, R5, #1                  @
+  STR     R5, [R4]                    @
+  
+  LDR     R4, =EXTI_PR                @ Clear (acknowledge) the interrupt
+  MOV     R5, #(1<<0)                 @
+  STR     R5, [R4]                    @
 
   @ Return from interrupt handler
-  POP  {R4,R5,PC}
+  POP    {R4,R5,PC}
 
 
   .section .data
