@@ -133,51 +133,51 @@ setLED:
   B       .LledLoop
 .Lpin1:
   LDR     R4, =GPIOE_ODR                      @Turn on Led1
-  LDR     R5, [R4] @ Read ...
-  ORR     R5, #(0b1<<(LD3_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  LDR     R5, [R4]                            @ Read 
+  ORR     R5, #(0b1<<(LD3_PIN))               @ Modify 
+  STR     R5, [R4]                            @ Write
   LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD3_PIN)) @ Modify ...  @Turn off Led1
-  STR     R5, [R4] @ Write
+  LDR     R5, [R4]                            @ Read
+  AND     R5, #(0b0<<(LD3_PIN))               @Turn off Led1
+  STR     R5, [R4]                            @ Write
   B       .LnextLoop
 .Lpin2:
   LDR     R4, =GPIOE_ODR                      @Turn on Led2
-  LDR     R5, [R4] @ Read ...
-  ORR     R5, #(0b1<<(LD5_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  LDR     R5, [R4]                            @ Read
+  ORR     R5, #(0b1<<(LD5_PIN))               @ Modify
+  STR     R5, [R4]                            @ Write
   LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD5_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write                    @Turn off Led2
+  LDR     R5, [R4]                            @ Read
+  AND     R5, #(0b0<<(LD5_PIN))               @ Modify
+  STR     R5, [R4]                            @Turn off Led2
   B       .LnextLoop
 .Lpin3:
   LDR     R4, =GPIOE_ODR                      @Turn on Led3
-  LDR     R5, [R4] @ Read ...
-  ORR     R5, #(0b1<<(LD7_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  LDR     R5, [R4]                            @ Read
+  ORR     R5, #(0b1<<(LD7_PIN))               @ Modify
+  STR     R5, [R4]                            @ Write
   LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD7_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write                      @Turn off Led3
+  LDR     R5, [R4]                            @ Read
+  AND     R5, #(0b0<<(LD7_PIN))               @ Modify
+  STR     R5, [R4]                            @Turn off Led3
   B       .LnextLoop
 .Lpin4:
   LDR     R4, =GPIOE_ODR                      @Turn on Led4
-  LDR     R5, [R4] @ Read ...
-  ORR     R5, #(0b1<<(LD9_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  LDR     R5, [R4]                            @ Read 
+  ORR     R5, #(0b1<<(LD9_PIN))               @ Modify 
+  STR     R5, [R4]                            @ Write
   LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD9_PIN)) @ Modify ...      
-  STR     R5, [R4] @ Write                    @Turn off Led4
+  LDR     R5, [R4]                            @ Read
+  AND     R5, #(0b0<<(LD9_PIN))               @ Modify  
+  STR     R5, [R4]                            @Turn off Led4
   B       .LnextLoop
 .LdoneLed:
   POP     {R4-R8, PC}
@@ -221,61 +221,61 @@ checkIfSum:
 
 
 
-displayOutcome:
-  PUSH    {R4-R9, LR} 
-  MOV     R9, R0
-  CMP     R0, #0                    @this outcome should be in an x shape
-  BNE     .LgameNotLost
-  LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  ORR     R5, #0b101010100000000
-  STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
-  BL      delay_ms
-  LDR     R5, [R4] @ Read ...
-  MOV     R8, #0b010101011111111
-  AND     R5, R8
-  STR     R5, [R4] @ Write
-  B       .LdoneOutcome
+displayOutcome:                         @ int displayOutcome(int outcome)
+  PUSH    {R4-R9, LR}                   @ {
+  MOV     R9, R0                        @     int outcomeStore = outcome;
+  CMP     R0, #0                        @     if ( outcome == 0 )
+  BNE     .LgameNotLost                 @     {
+  LDR     R4, =GPIOE_ODR                @         GPIO Port E Mode Register;
+  LDR     R5, [R4]                      @         tmp = GPIO Port E Mode Register;
+  ORR     R5, #0b101010100000000        @         tmp = (write 1 to bits LED in cross shape);
+  STR     R5, [R4]                      @         GPIO Port E Mode Register = tmp;
+  LDR     R0, =BLINK_PERIOD             @         
+  BL      delay_ms                      @         delay_ms(BLINK_PERIOD);
+  LDR     R5, [R4]                      @         
+  MOV     R8, #0b010101011111111        @         tmp = (write 0 to bits LED in cross shape);
+  AND     R5, R8                        @         GPIO Port E Mode Register = tmp;
+  STR     R5, [R4]                      @     }
+  B       .LdoneOutcome                 @
 
-.LgameNotLost:
-  CMP     R0, #1                    @this outcome should make all lights light up
-  BNE     .LfullGameWon             @for when single round is guessed
-  LDR     R4, =GPIOE_ODR
-  LDR     R5, [R4] @ Read ...
-  LDR     R8, =0b1111111100000000
-  ORR     R5, R8
-  STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
-  BL      delay_ms
-  LDR     R5, [R4] @ Read ...
-  LDR     R8, =0b0000000011111111
-  AND     R5, R8
-  STR     R5, [R4] @ Write
-  B       .LdoneOutcome
+.LgameNotLost:                          @     else if ( outcome == 1 )
+  CMP     R0, #1                        @     {
+  BNE     .LfullGameWon                 @   
+  LDR     R4, =GPIOE_ODR                @         GPIO Port E Mode Register;
+  LDR     R5, [R4]                      @         tmp = GPIO Port E Mode Register;
+  LDR     R8, =0b1111111100000000       @         tmp = (write 1 to bits LED 3,4,5,6,7,8,9,10);
+  ORR     R5, R8                        @         GPIO Port E Mode Register = tmp;
+  STR     R5, [R4]                      @
+  LDR     R0, =BLINK_PERIOD             @         delay_ms(BLINK_PERIOD);
+  BL      delay_ms                      @
+  LDR     R5, [R4]                      @
+  LDR     R8, =0b0000000011111111       @         tmp = (write 0 to bits LED 3,4,5,6,7,8,9,10);
+  AND     R5, R8                        @         GPIO Port E Mode Register = tmp;
+  STR     R5, [R4]                      @
+  B       .LdoneOutcome                 @     }
 
-.LfullGameWon:
-  MOV     R6, #(0b1<<(LD4_PIN))     @this outcome should make all lights light up one by one
-  MOV     R7, #0
-  LDR     R4, =GPIOE_ODR
-.LwhFullGameWon:
-  CMP     R7, #8                   
-  BEQ     .LeWhFullGameWon
-  LDR     R5, [R4]
-  ORR     R5, R6
-  LSL     R6, #1
-  STR     R5, [R4]
-  LDR     R0, =1000
-  BL      delay_ms
-  ADD     R7, #1
-  B       .LwhFullGameWon   
-.LeWhFullGameWon:
-  LDR     R5, [R4] @ Read ...
-  AND     R5, #0b000000001111111
-  STR     R5, [R4] @ Write  
-.LdoneOutcome:
-  MOV     R0, R9
-  POP     {R4-R9, PC}
+.LfullGameWon:                          @     else
+  MOV     R6, #(0b1<<(LD4_PIN))         @     {
+  MOV     R7, #0                        @         int currentLED = (0b1<<(LD4_PIN)); 
+  LDR     R4, =GPIOE_ODR                @         GPIO Port E Mode Register;
+.LwhFullGameWon:                        @   
+  CMP     R7, #8                        @         for ( int i = 0; i = 8; i++)
+  BEQ     .LeWhFullGameWon              @         {
+  LDR     R5, [R4]                      @             tmp = GPIO Port E Mode Register;
+  ORR     R5, R6                        @             tmp = (write 1 to bits currentLED);
+  LSL     R6, #1                        @             currentLED = currentLED << 1;
+  STR     R5, [R4]                      @             GPIO Port E Mode Register = tmp;
+  LDR     R0, =BLINK_PERIOD             @
+  BL      delay_ms                      @             delay_ms(BLINK_PERIOD);
+  ADD     R7, #1                        @ 
+  B       .LwhFullGameWon               @         }
+.LeWhFullGameWon:                       @
+  LDR     R5, [R4]                      @         tmp = GPIO Port E Mode Register;
+  AND     R5, #0b000000001111111        @         tmp = (write 0 to bits LED 3,4,5,6,7,8,9,10);
+  STR     R5, [R4]                      @         GPIO Port E Mode Register = tmp;
+.LdoneOutcome:                          @     }
+  MOV     R0, R9                        @ int outcome = outcomeStore; 
+  POP     {R4-R9, PC}                   @ }
 
 delay_ms:
   PUSH    {R4-R5,LR}
