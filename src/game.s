@@ -109,74 +109,75 @@ End_Main:
 notWon:                           @     result = endResult
   BL      displayOutcome          @ displayOutcome(result)
   POP     {R10-R12,PC}
+@ setLed sets the pattern of leds called in array
 @ inputs, R0 = start address of array, R1 = current length of sequence 
-setLED:
+setLED:                           
   PUSH    {R4-R8, LR}
   MOV     R7, R0
   MOV     R8, R1
   MOV     R6, #0
 .LledLoop:
-  CMP     R6, R8
+  CMP     R6, R8                  @while (currentLed != finalLEd )
   BEQ     .LdoneLed
-  LDR     R5, [R7, R6 , LSL #2]
-  CMP     R5, #1
-  BEQ     .Lpin1
+  LDR     R5, [R7, R6 , LSL #2]   @Load currentLedOutput
+  CMP     R5, #1                  @Switch currentLedOutput
+  BEQ     .Lpin1                  @Case Pin1 B Pin1()
   CMP     R5, #2
-  BEQ     .Lpin2
+  BEQ     .Lpin2                  @Case Pin2 B Pin2()
   CMP     R5, #3
-  BEQ     .Lpin3
+  BEQ     .Lpin3                  @Case Pin3 B Pin3()
   CMP     R5, #4
-  BEQ     .Lpin4
+  BEQ     .Lpin4                  @Case Pin4 B Pin4()
 .LnextLoop:
-  ADD     R6, R6, #1
+  ADD     R6, R6, #1              @ currentLed = currentLed + 1
   B       .LledLoop
 .Lpin1:
-  LDR     R4, =GPIOE_ODR
+  LDR     R4, =GPIOE_ODR                      @Turn on Led1
   LDR     R5, [R4] @ Read ...
   ORR     R5, #(0b1<<(LD3_PIN)) @ Modify ...
   STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
+  LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
   LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD3_PIN)) @ Modify ...
+  AND     R5, #(0b0<<(LD3_PIN)) @ Modify ...  @Turn off Led1
   STR     R5, [R4] @ Write
   B       .LnextLoop
 .Lpin2:
-  LDR     R4, =GPIOE_ODR
+  LDR     R4, =GPIOE_ODR                      @Turn on Led2
   LDR     R5, [R4] @ Read ...
   ORR     R5, #(0b1<<(LD5_PIN)) @ Modify ...
   STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
+  LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
   LDR     R5, [R4] @ Read ...
   AND     R5, #(0b0<<(LD5_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  STR     R5, [R4] @ Write                    @Turn off Led2
   B       .LnextLoop
 .Lpin3:
-  LDR     R4, =GPIOE_ODR
+  LDR     R4, =GPIOE_ODR                      @Turn on Led3
   LDR     R5, [R4] @ Read ...
   ORR     R5, #(0b1<<(LD7_PIN)) @ Modify ...
   STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
+  LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
   LDR     R5, [R4] @ Read ...
   AND     R5, #(0b0<<(LD7_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  STR     R5, [R4] @ Write                      @Turn off Led3
   B       .LnextLoop
 .Lpin4:
-  LDR     R4, =GPIOE_ODR
+  LDR     R4, =GPIOE_ODR                      @Turn on Led4
   LDR     R5, [R4] @ Read ...
   ORR     R5, #(0b1<<(LD9_PIN)) @ Modify ...
   STR     R5, [R4] @ Write
-  LDR     R0, =BLINK_PERIOD
+  LDR     R0, =BLINK_PERIOD                   @Pause a second
   BL      delay_ms
   LDR     R4, =GPIOE_ODR
   LDR     R5, [R4] @ Read ...
-  AND     R5, #(0b0<<(LD9_PIN)) @ Modify ...
-  STR     R5, [R4] @ Write
+  AND     R5, #(0b0<<(LD9_PIN)) @ Modify ...      
+  STR     R5, [R4] @ Write                    @Turn off Led4
   B       .LnextLoop
 .LdoneLed:
   POP     {R4-R8, PC}
