@@ -76,38 +76,38 @@ Main:
   STR     R5, [R4]
 
 
-  LDR     R10, =patternArray @ output R0 = start address
-  LDR     R12, =patternArrayLen         @ output R1 = length (measured in bytes)
-  MOV     R11, #1
-.LFor2:  
+  LDR     R10, =patternArray      @ arrayAddress = patternArray
+  LDR     R12, =patternArrayLen   @ arrayLength = patternArrayLen    
+  MOV     R11, #1     
+.LFor2:                           @ for (i = 1, i <= arrayLength, i++) {
   CMP     R11, R12 
   BHI     .LendFor2
   MOV     R0, R10
   MOV     R1, R11
-  BL      setLED            @ sets the LED based on the array
-  LDR     R3, =button_count
-  MOV     R4, #0
+  BL      setLED                  @   setLED(arrayAddress, i)
+  LDR     R3, =button_count       
+  MOV     R4, #0                  @   button_count = 0
   STR     R4, [R3]
   LDR     R0, =WAIT_PERIOD
-  BL      delay_ms
+  BL      delay_ms                @   delay_ms(WAIT_PERIOD)
   MOV     R0, R10
   MOV     R1, R11 
   LDR     R3, =button_count
   LDR     R2, [R3]
-  BL      checkIfSum
-  CMP     R0, #1
-  BNE     End_Main
-  BL      displayOutcome
-  ADD     R11, R11, #1
+  BL      checkIfSum              @   result = checkIfSum(arrayAddress, i, button_count)
+  CMP     R0, #1                  @   if (!result) 
+  BNE     End_Main                @       break
+  BL      displayOutcome          @   displayOutcome(result)
+  ADD     R11, R11, #1            
   B       .LFor2
-.LendFor2:
+.LendFor2:                        @ }
   
 End_Main:
-  CMP     R0, #1
-  BNE     notWon
-  MOV     R0, #2
-notWon:
-  BL      displayOutcome
+  CMP     R0, #1                  @ if (!result)
+  BNE     notWon                  @     branch(notWon)
+  MOV     R0, #2                  @ else
+notWon:                           @     result = endResult
+  BL      displayOutcome          @ displayOutcome(result)
   POP     {R10-R12,PC}
 @ inputs, R0 = start address of array, R1 = current length of sequence 
 setLED:
@@ -196,32 +196,33 @@ setLED:
 @ return value: R0 1 if correct 0 if wrong
 checkIfSum:
   PUSH    {R4-R9, LR}
-  MOV     R4, R0
+  MOV     R4, R0                  
   MOV     R5, R1
   MOV     R6, R2
-  MOV     R7, #0
-  MOV     R8, #0
-.LFor1:
+  MOV     R7, #0                @ arraySum = 0
+  MOV     R8, #0              
+.LFor1:                         @ for (i = 0, i < arrayLength, i++) {
   CMP     R7, R5
-  BHS     .LendFor1
-  LDR     R9, [R4, R7, LSL #2]
-  ADD     R8, R8, R9 
+  BHS     .LendFor1   
+  LDR     R9, [R4, R7, LSL #2]  
+  ADD     R8, R8, R9            @     arraySum += array[i]
   ADD     R7, R7, #1
   B       .LFor1
-.LendFor1:
-  CMP     R8, R6 
-  BEQ     .LCorrect
-  MOV     R0, #0
-  B       .LFinishCheckIfSum
-.LCorrect:
-  MOV     R0, #1
+.LendFor1:                      @ }
+  CMP     R8, R6                @ if (button_count != arraySum)
+  BEQ     .LCorrect             @     return false
+  MOV     R0, #0                
+  B       .LFinishCheckIfSum    
+.LCorrect:                      @ else
+  MOV     R0, #1                @     return true
 .LFinishCheckIfSum:
   POP     {R4-R9, PC}
 
 
 
 displayOutcome:
-  PUSH    {R4-R8, LR} 
+  PUSH    {R4-R9, LR} 
+  MOV     R9, R0
   CMP     R0, #0                    @this outcome should be in an x shape
   BNE     .LgameNotLost
   LDR     R4, =GPIOE_ODR
@@ -241,26 +242,29 @@ displayOutcome:
   BNE     .LfullGameWon             @for when single round is guessed
   LDR     R4, =GPIOE_ODR
   LDR     R5, [R4] @ Read ...
-  ORR     R5, #0b111111110000000
+  LDR     R8, =0b1111111100000000
+  ORR     R5, R8
   STR     R5, [R4] @ Write
   LDR     R0, =BLINK_PERIOD
   BL      delay_ms
   LDR     R5, [R4] @ Read ...
-  AND     R5, #0b000000001111111
+  LDR     R8, =0b0000000011111111
+  AND     R5, R8
   STR     R5, [R4] @ Write
   B       .LdoneOutcome
 
 .LfullGameWon:
   MOV     R6, #(0b1<<(LD4_PIN))     @this outcome should make all lights light up one by one
   MOV     R7, #0
+  LDR     R4, =GPIOE_ODR
 .LwhFullGameWon:
-  CMP     R7, #7                   
+  CMP     R7, #8                   
   BEQ     .LeWhFullGameWon
   LDR     R5, [R4]
   ORR     R5, R6
   LSL     R6, #1
   STR     R5, [R4]
-  LDR     R0, =BLINK_PERIOD
+  LDR     R0, =1000
   BL      delay_ms
   ADD     R7, #1
   B       .LwhFullGameWon   
@@ -269,7 +273,8 @@ displayOutcome:
   AND     R5, #0b000000001111111
   STR     R5, [R4] @ Write  
 .LdoneOutcome:
-  POP     {R4-R8, PC}
+  MOV     R0, R9
+  POP     {R4-R9, PC}
 
 delay_ms:
   PUSH    {R4-R5,LR}
